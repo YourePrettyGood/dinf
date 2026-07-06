@@ -20,7 +20,9 @@ def get_samples_from_1kgp_metadata(filename: str, /, *, populations: list) -> di
         This file can be downloaded from
         http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/
     :param populations:
-        List of populations to extract.
+        List of populations to extract. Population tuples may also be included
+        in the list by representing them as population names concatenated
+        with "+" as the delimiter (e.g. "YRI+CEU").
     :return:
         A dict mapping population names to a list of sample IDs.
     """
@@ -28,7 +30,7 @@ def get_samples_from_1kgp_metadata(filename: str, /, *, populations: list) -> di
     # Remove related individuals.
     data = data[data.FatherID == "0"]
     data = data[data.MotherID == "0"]
-    return {pop: data.SampleID[data.Population == pop].tolist() for pop in populations}
+    return {pop: data.SampleID[np.isin(data.Population, pop.split("+"))].tolist() for pop in populations}
 
 
 def get_contig_lengths(
@@ -296,7 +298,9 @@ class BagOfVcf(collections.abc.Mapping):
         if individuals is not None:
             individuals = list(individuals)
             if len(set(individuals)) != len(individuals):
-                raise ValueError("Individuals list contains duplicates.")
+                #warnings.warn("Individuals list contains duplicates, deduplicating.")
+                individuals = list(dict.fromkeys(individuals))
+                #raise ValueError("Individuals list contains duplicates.")
 
         all_samples = None
         all_samples_file = None

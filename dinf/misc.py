@@ -62,17 +62,23 @@ def ts_individuals(
         Only return individuals from this population. The population may be
         a string identifier (which will be matched against the 'name'
         metadata field in the population table of the tree sequence),
-        or an integer population id.
+        or an integer population id. Alternatively, the string can be a
+        list delimited by '+' of population names, which will be treated
+        as the union of samples across populations in the list.
         If not specified, all sampled individuals will be returned.
     :return:
         An array of individual IDs (indices into the individuals table).
     """
     if isinstance(population, str):
         pop2idx = {p.metadata.get("name"): p.id for p in ts.populations()}
-        if population not in pop2idx:
-            raise ValueError(f"'{population}' not found in the population table")
-        population = pop2idx[population]
-    nodes = ts.samples(population)
+        pop_indices = []
+        for pop in population.split("+"):
+            if pop not in pop2idx:
+                raise ValueError(f"'{pop}' not found in the population table")
+            pop_indices.append(pop2idx[pop])
+    else:
+        pop_indices = [population]
+    nodes = np.concatenate([ts.samples(pop_index) for pop_index in pop_indices])
     individuals = ts.tables.nodes.individual[nodes]
     return np.unique(individuals)
 
