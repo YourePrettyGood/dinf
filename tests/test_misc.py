@@ -43,6 +43,16 @@ def test_ts_individuals_with_population_name():
         assert (n.individual in individuals) == (pop_name == "A")
 
 
+def test_ts_individuals_with_population_union():
+    ts = sim([2])
+    pop_names = "A+B".split("+")
+    individuals = ts_individuals(ts, "A+B")
+    for j in ts.samples():
+        n = ts.node(j)
+        pop_name = ts.population(n.population).metadata.get("name")
+        assert (n.individual in individuals) == (pop_name in pop_names)
+
+
 def test_ts_individuals_with_population_id():
     ts = sim([2])
     individuals = ts_individuals(ts, 0)

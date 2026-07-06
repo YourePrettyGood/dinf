@@ -46,6 +46,19 @@ class TestGetSamplesFrom1KgpMetadata:
         )
         assert samples == dict(**gbr, **fin, **chs)
 
+    @pytest.mark.usefixtures("tmp_path")
+    def test_pop_union(self, tmp_path):
+        filename = tmp_path / "1kgp_metadata.txt"
+        with open(filename, "w") as f:
+            f.write(_1kgp_test_metadata)
+        gbr = dinf.get_samples_from_1kgp_metadata(filename, populations=["GBR"])
+        fin = dinf.get_samples_from_1kgp_metadata(filename, populations=["FIN"])
+        gbr_plus_fin = {"GBR+FIN": sorted(gbr["GBR"]+fin["FIN"])}
+        samples = dinf.get_samples_from_1kgp_metadata(
+            filename, populations=["GBR", "FIN", "GBR+FIN"]
+        )
+        assert samples == dict(**gbr, **fin, **gbr_plus_fin)
+
 
 class TestGetContigLengths:
     @pytest.mark.usefixtures("tmp_path")
@@ -617,8 +630,10 @@ class TestBagOfVcf:
     def test_duplicate_samples(self, tmp_path):
         all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
         samples = {"A": all_samples["A"] + [all_samples["A"][0]]}
-        with pytest.raises(ValueError, match="Individuals list contains duplicates"):
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
+        assert sorted(all_samples["A"]) == sorted(list(vb.sample_index_map))
+    #    with pytest.raises(ValueError, match="Individuals list contains duplicates"):
+    #        dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
 
     @pytest.mark.usefixtures("tmp_path")
     def test_contigs(self, tmp_path):
